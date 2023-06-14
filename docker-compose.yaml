@@ -51,13 +51,13 @@ services:
       - ./core:/app/core/
       - ./todolist:/app/todolist/
 
-  collect_static:
-    build: .
-    env_file:
-      - .env
-    command: python manage.py collectstatic -c --no-input
-    volumes:
-      - django_static:/app/static/
+#  collect_static:
+#    build: .
+#    env_file:
+#      - .env
+#    command: python manage.py collectstatic -c --no-input
+#    volumes:
+#      - django_static:/app/static/
 
   frontend:
     image: sermalenk/skypro-front:lesson-38
@@ -69,10 +69,10 @@ services:
         condition: service_started
       collect_static:
         condition: service_completed_successfully
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - django_static:/usr/share/nginx/html/static/
+#    volumes:
+#      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+#      - django_static:/usr/share/nginx/html/static/
 
 volumes:
   postgres_data:
-  django_static:
+#  django_static:
