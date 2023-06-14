@@ -20,7 +20,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   migrations:
-    build: .
+    image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
     depends_on:
       postgres:
         condition: service_healthy
@@ -33,7 +33,7 @@ services:
 #      sh -c "python manage.py makemigrations && python manage.py migrate"
 
   api:
-    build: .
+    image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,12 +47,12 @@ services:
     environment:
       DB_HOST: postgres
       DEBUG: false
-    volumes:
-      - ./core:/app/core/
-      - ./todolist:/app/todolist/
+#    volumes:
+#      - ./core:/app/core/
+#      - ./todolist:/app/todolist/
 
   collect_static:
-    build: .
+    image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
     env_file:
       - .env
     command: python manage.py collectstatic -c --no-input
