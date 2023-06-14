@@ -60,7 +60,7 @@ services:
 #      - django_static:/app/static/
 
   frontend:
-    image: sermalenk/skypro-front:lesson-38
+    image: sermalenk/skypro-front:lesson-35
     restart: on-failure
     ports:
       - "80:80"
