@@ -40,4 +40,4 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           script: |
             cd diploma
-            echo ${{ secrets.PASSWORD }} | sudo -S docker-compose up -d
+            echo developer | sudo -S docker-compose up -d
