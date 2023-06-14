@@ -32,7 +32,7 @@ jobs:
           source: "deploy/docker-compose.yaml, deploy/nginx.conf, deploy/.env"
           target: "diploma"
           strip_components: 1
-      - name: deploy app
+      - name: run app
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
