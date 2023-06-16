@@ -16,7 +16,7 @@ class SignUpView(CreateAPIView):
     permission_classes = [AllowAny]
 
 
-class UserLoginView(GenericAPIView):
+class LoginView(GenericAPIView):
     serializer_class = LoginSerializer
 
     def post(self, request, *args, **kwargs):
@@ -49,4 +49,3 @@ class PasswordUpdateView(UpdateAPIView):
 
     def get_object(self):
         return self.request.user
-
