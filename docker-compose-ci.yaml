@@ -3,6 +3,7 @@ version: "3.9"
 services:
   postgres:
     image: postgres
+    restart: always
     ports:
       - "5432:5432"
     env_file:
@@ -21,6 +22,7 @@ services:
 
   migrations:
     image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
+    restart: always
     depends_on:
       postgres:
         condition: service_healthy
@@ -28,13 +30,13 @@ services:
       - .env
     environment:
       DB_HOST: postgres
-    command: >
-      sh -c "python manage.py makemigrations && python manage.py migrate"
-
-#  python manage.py migrate
+    command: python manage.py migrate
+#      >
+#      sh -c "python manage.py makemigrations && python manage.py migrate"
 
   api:
     image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
+    restart: always
     depends_on:
       postgres:
         condition: service_healthy
