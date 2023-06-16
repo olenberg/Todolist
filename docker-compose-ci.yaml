@@ -28,9 +28,10 @@ services:
       - .env
     environment:
       DB_HOST: postgres
-    command: python manage.py migrate
-#      >
-#      sh -c "python manage.py makemigrations && python manage.py migrate"
+    command: >
+      sh -c "python manage.py makemigrations && python manage.py migrate"
+
+#  python manage.py migrate
 
   api:
     image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
