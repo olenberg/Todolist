@@ -21,7 +21,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   migrations:
-    image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
+    image: olenberg/todolist:main-5295657530
 #    restart: always
     depends_on:
       postgres:
@@ -35,7 +35,7 @@ services:
 #      sh -c "python manage.py makemigrations && python manage.py migrate"
 
   api:
-    image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
+    image: olenberg/todolist:main-5295657530
 #    restart: always
     depends_on:
       postgres:
@@ -49,7 +49,7 @@ services:
       - .env
     environment:
       DB_HOST: postgres
-      DEBUG: false
+      DEBUG: true
     volumes:
       - ./core:/app/core/
       - ./todolist:/app/todolist/
