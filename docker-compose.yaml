@@ -21,7 +21,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   migrations:
-    image: olenberg/todolist:main-5295657530
+    build: .
 #    restart: always
     depends_on:
       postgres:
@@ -35,7 +35,7 @@ services:
 #      sh -c "python manage.py makemigrations && python manage.py migrate"
 
   api:
-    image: olenberg/todolist:main-5295657530
+    build: .
 #    restart: always
     depends_on:
       postgres:
