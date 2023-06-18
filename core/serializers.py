@@ -24,7 +24,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         if User.objects.filter(username=validated_data["username"]).exists():
             raise ValidationError("A user with this name already exists!")
         else:
-            del validated_data["password_repeat"]
+            # del validated_data["password_repeat"]
             validated_data["password"] = make_password(validated_data["password"])
             user = User.objects.create(**validated_data)
             user.save()
