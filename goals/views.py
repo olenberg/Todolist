@@ -104,7 +104,6 @@ class GoalCommentListView(ListAPIView):
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ["created", "updated"]
     ordering = ["created"]
-    filterset_fields = ["goal"]
 
     def get_queryset(self):
         return GoalComment.objects.select_related('user').filter(user_id=self.request.user.id)
