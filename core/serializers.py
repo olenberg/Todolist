@@ -21,6 +21,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         return validated_data
 
     def create(self, validated_data: Dict) -> User:
+        print(validated_data)
         if User.objects.filter(username=validated_data["username"]).exists():
             raise ValidationError("A user with this name already exists!")
         else:
