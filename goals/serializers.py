@@ -69,6 +69,7 @@ class GoalCommentCreateSerializer(ModelSerializer):
 
 class GoalCommentSerializer(ModelSerializer):
     user = ProfileSerializer(read_only=True)
+    goal = PrimaryKeyRelatedField(queryset=Goal.objects.all())
 
     class Meta:
         model = GoalComment
