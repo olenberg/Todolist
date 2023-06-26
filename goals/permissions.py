@@ -1,7 +1,7 @@
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
-from models import GoalCategory, Goal, GoalComment
+from goals.models import GoalCategory, Goal, GoalComment
 
 
 class GoalCategoryPermission(IsAuthenticated):
