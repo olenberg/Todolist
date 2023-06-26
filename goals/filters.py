@@ -13,7 +13,3 @@ class GoalDateFilter(rest_framework.FilterSet):
             "status": ("exact", "in"),
             "priority": ("exact", "in"),
         }
-
-    filter_overrides = {
-        models.DateTimeField: {"filter_class": django_filters.IsoDateTimeFilter},
-    }

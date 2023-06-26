@@ -31,14 +31,14 @@ class GoalCreateSerializer(ModelSerializer):
         fields = "__all__"
         read_only_fields = ("id", "created", "updated", "user")
 
-    def validate_category(self, value):
-        if value.is_deleted:
-            raise ValidationError("not allowed in deleted category")
+    def validate_category(self, category):
+        if category.is_deleted:
+            raise ValidationError("Category not found")
 
-        if value.user != self.context["request"].user:
-            raise ValidationError("not owner of category")
+        if category.user != self.context["request"].user:
+            raise PermissionDenied
 
-        return value
+        return category
 
 
 class GoalSerializer(ModelSerializer):
@@ -69,7 +69,7 @@ class GoalCommentCreateSerializer(ModelSerializer):
 
 class GoalCommentSerializer(ModelSerializer):
     user = ProfileSerializer(read_only=True)
-    goal = PrimaryKeyRelatedField(queryset=Goal.objects.all())
+    goal = PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = GoalComment

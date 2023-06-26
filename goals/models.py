@@ -1,24 +1,27 @@
 from core.models import User
 from django.db import models
-from django.utils import timezone
+# from django.utils import timezone
 
 
-class DatesModelMixin(models.Model):
-    created = models.DateTimeField(verbose_name="Дата создания")
-    updated = models.DateTimeField(verbose_name="Дата последнего обновления")
+class BaseModel(models.Model):
+    created = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated = models.DateTimeField(auto_now=True, verbose_name="Дата последнего обновления")
 
     class Meta:
-        abstract: bool = True
+        abstract = True
 
-    def save(self, *args, **kwargs) -> None:
-        if not self.pk:
-            self.created = timezone.now()
-        self.updated = timezone.now()
+    # class Meta:
+    #     abstract: bool = True
+    #
+    # def save(self, *args, **kwargs) -> None:
+    #     if not self.pk:
+    #         self.created = timezone.now()
+    #     self.updated = timezone.now()
+    #
+    #     return super().save(*args, **kwargs)
 
-        return super().save(*args, **kwargs)
 
-
-class GoalCategory(DatesModelMixin):
+class GoalCategory(BaseModel):
     class Meta:
         verbose_name = "Категория"
         verbose_name_plural = "Категории"
@@ -30,7 +33,7 @@ class GoalCategory(DatesModelMixin):
     is_deleted = models.BooleanField(verbose_name="Удалена", default=False)
 
 
-class Goal(DatesModelMixin):
+class Goal(BaseModel):
     class Meta:
         verbose_name = 'Цель'
         verbose_name_plural = 'Цель'
@@ -64,7 +67,7 @@ class Goal(DatesModelMixin):
     due_date = models.DateField(verbose_name="Дата дедлайна", null=True, blank=True)
 
 
-class GoalComment(DatesModelMixin):
+class GoalComment(BaseModel):
     class Meta:
         verbose_name = "Комментарий к цели"
         verbose_name_plural = "Комментарии к целям"
