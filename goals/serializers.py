@@ -123,7 +123,7 @@ class BoardCreateSerializer(ModelSerializer):
 
 
 class BoardParticipantSerializer(ModelSerializer):
-    role = serializers.ChoiceField(
+    role = ChoiceField(
         required=True, choices=BoardParticipant.Role.choices[1:]
     )
     user = SlugRelatedField(
