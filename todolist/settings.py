@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django_filters',
     'core.apps.CoreConfig',
     'goals.apps.GoalsConfig',
+    'bot.apps.BotConfig',
 ]
 
 MIDDLEWARE = [
@@ -141,3 +142,5 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
     )
 }
+
+BOT_TOKEN = "6055417954:AAEuoPZ8enAO0VYPh0FHo_aAajCvQhkpT_s"
