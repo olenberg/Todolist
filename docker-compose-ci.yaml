@@ -80,8 +80,7 @@ services:
     image: olenberg/todolist:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
     env_file:
       - .env
-    command: >
-      sh -c "python3 manage.py runbot"
+    command: python manage.py runbot
     depends_on:
       postgres:
         condition: service_healthy
