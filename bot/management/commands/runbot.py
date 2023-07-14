@@ -1,9 +1,7 @@
 from enum import auto
 from enum import Flag
-
 from django.conf import settings
 from django.core.management import BaseCommand
-
 from bot.models import TgUser
 from bot.tg.client import TgClient
 from bot.tg.dc import Message
@@ -29,7 +27,6 @@ class Command(BaseCommand):
         self.goals_for_create = {}
 
     def handle(self, *args, **options):
-        """Enter when command Start"""
         offset = 0
 
         while True:
@@ -39,7 +36,6 @@ class Command(BaseCommand):
                 self.handle_message(item.message)
 
     def handle_message(self, message: Message):
-        """Handle all messages"""
         tg_user, created = TgUser.objects.get_or_create(
             tg_id=message.from_.id,
             defaults={
@@ -73,7 +69,6 @@ class Command(BaseCommand):
                 self.input_title_for_create_goal_state(message, tg_user)
 
     def verification_state(self, message: Message, tg_user: TgUser):
-        """Send verification code"""
         tg_user.set_verification_code()
         tg_user.save(update_fields=["verification_code"])
         self.tg_client.send_message(
@@ -82,7 +77,6 @@ class Command(BaseCommand):
         )
 
     def idle_state(self, message: Message, tg_user: TgUser):
-        """Handle commands for verification user"""
         if message.text == "/goals":
             self.send_tasks(message, tg_user)
         elif message.text == "/create":
@@ -92,7 +86,7 @@ class Command(BaseCommand):
             self.send_all_categories(message, tg_user)
         else:
             self.tg_client.send_message(
-                message.chat.id, "Неизвестная команда :V"
+                message.chat.id, "Неизвестная команда"
             )
 
     def send_tasks(self, message: Message, tg_user: TgUser):
@@ -105,11 +99,10 @@ class Command(BaseCommand):
             self.tg_client.send_message(message.chat.id, msg)
         else:
             self.tg_client.send_message(
-                message.chat.id, "У вас нет целей ( ・ˍ・)"
+                message.chat.id, "У вас нет целей"
             )
 
     def send_all_categories(self, message: Message, tg_user: TgUser):
-        """Send all user's categories"""
         categories = GoalCategory.objects.filter(
             board__participants__user=tg_user.user, is_deleted=False
         )
@@ -123,14 +116,13 @@ class Command(BaseCommand):
             )
         else:
             self.tg_client.send_message(
-                message.chat.id, "У вас нет категорий ( ・ˍ・)"
+                message.chat.id, "У вас нет категорий"
             )
             self.states_storage[tg_user.tg_id] = States.idle
 
     def input_cat_for_create_goal_state(
         self, message: Message, tg_user: TgUser
     ):
-        """Wait while user input category name for create goal (1 step)"""
         if message.text == "/cancel":
             self.goals_for_create.pop(tg_user.tg_id, None)
             self.cancel(message, tg_user)
@@ -154,13 +146,12 @@ class Command(BaseCommand):
         else:
             self.tg_client.send_message(
                 message.chat.id,
-                "У вас нет такой категории :V\nПопробуйте еще раз :D",
+                "У вас нет такой категории :V\nПопробуйте еще раз",
             )
 
     def input_title_for_create_goal_state(
         self, message: Message, tg_user: TgUser
     ):
-        """Wait while user input title for create goal (2 step)"""
         if message.text == "/cancel":
             self.goals_for_create.pop(tg_user.tg_id, None)
             self.cancel(message, tg_user)
@@ -172,12 +163,11 @@ class Command(BaseCommand):
         )
         self.tg_client.send_message(
             message.chat.id,
-            "Ура! Ваша цель создана:\n"
-            + f"http://gefogen.ga/boards/{category.board.id}/goals?goal={goal.id}",
+            "Ваша цель создана:\n"
+            + f"http://84.201.176.215/boards/{category.board.id}/goals?goal={goal.id}",
         )
         self.states_storage[tg_user.tg_id] = States.idle
 
     def cancel(self, message: Message, tg_user: TgUser):
-        """Return user to idle state"""
         self.tg_client.send_message(message.chat.id, "Операция отменена")
         self.states_storage[tg_user.tg_id] = States.idle
