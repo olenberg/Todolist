@@ -1,5 +1,5 @@
 import requests
-from bot.tg.dc import GetUpdatesResponse, SendMessageResponse, GET_UPDATES_RESPONSE_SCHEMA, SEND_MESSAGE_RESPONSE_SCHEMA
+from bot.tg.dc import GetUpdatesResponse, SendMessageResponse
 
 
 class TgClient:
@@ -7,14 +7,19 @@ class TgClient:
         self.token = token
 
     def get_url(self, method: str):
-        return f'https://api.telegram.org/bot{self.token}/{method}'
+        return f"https://api.telegram.org/bot{self.token}/{method}"
 
-    def get_updates(self, offset: int = 0, timeout: int = 120) -> GetUpdatesResponse:
-        url = self.get_url('getUpdates')
-        response = requests.get(url=url, params={'offset': offset, 'timeout': timeout})
-        return GET_UPDATES_RESPONSE_SCHEMA.load(response.json())
+    def get_updates(self, offset: int = 0, timeout: int = 60) -> GetUpdatesResponse:
+        url = self.get_url("getUpdates")
+        resp = requests.get(url, params={"offset": offset, "timeout": timeout})
+        return GetUpdatesResponse.Schema().load(resp.json())
 
-    def send_message(self, chat_id: int, text: str) -> SendMessageResponse:
-        url = self.get_url('sendMessage')
-        response = requests.get(url=url, params={'chat_id': chat_id, 'text': text})
-        return SEND_MESSAGE_RESPONSE_SCHEMA.load(response.json())
+    def send_message(self, chat_id: int, text: str, parse_mode: str | None = None) -> SendMessageResponse:
+        url = self.get_url("sendMessage")
+
+        json_data = {"chat_id": chat_id, "text": text}
+        if parse_mode and parse_mode in ["MarkdownV2", "HTML", "Markdown"]:
+            json_data |= {"parse_mode": parse_mode}
+
+        resp = requests.post(url, json=json_data)
+        return SendMessageResponse.Schema().load(resp.json())

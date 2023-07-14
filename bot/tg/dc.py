@@ -1,73 +1,69 @@
-from dataclasses import dataclass, field
-from typing import List, Optional
+from dataclasses import field
+from typing import ClassVar
 
-import marshmallow
-import marshmallow_dataclass
+from marshmallow import EXCLUDE
+from marshmallow import Schema
+from marshmallow_dataclass import dataclass
 
 
 @dataclass
 class MessageFrom:
     id: int
-    is_bot: bool
-    first_name: Optional[str]
-    last_name: Optional[str]
-    username: Optional[str]
+    first_name: str
+    last_name: str | None
+    username: str | None
 
     class Meta:
-        unknown = marshmallow.EXCLUDE
+        unknown = EXCLUDE
 
 
 @dataclass
 class Chat:
     id: int
-    username: Optional[str]
-    first_name: Optional[str]
-    last_name: Optional[str]
     type: str
+    first_name: str | None = None
+    last_name: str | None = None
+    username: str | None = None
 
     class Meta:
-        unknown = marshmallow.EXCLUDE
+        unknown = EXCLUDE
 
 
 @dataclass
 class Message:
     message_id: int
+    from_: MessageFrom = field(metadata={"data_key": "from"})
     chat: Chat
-    msg_from: MessageFrom = field(metadata={'data_key': 'from'})
-    text: Optional[str]
-    date: int
+    text: str | None = None
 
     class Meta:
-        unknown = marshmallow.EXCLUDE
+        unknown = EXCLUDE
 
 
 @dataclass
 class UpdateObj:
     update_id: int
-    message: Optional[Message]
-    edited_message: Optional[Message]
+    message: Message
 
     class Meta:
-        unknown = marshmallow.EXCLUDE
+        unknown = EXCLUDE
 
 
 @dataclass
 class GetUpdatesResponse:
     ok: bool
-    result: List[UpdateObj]
+    result: list[UpdateObj]
+    Schema: ClassVar[type[Schema]] = Schema
 
     class Meta:
-        unknown = marshmallow.EXCLUDE
+        unknown = EXCLUDE
 
 
 @dataclass
 class SendMessageResponse:
     ok: bool
     result: Message
+    Schema: ClassVar[type[Schema]] = Schema
 
     class Meta:
-        unknown = marshmallow.EXCLUDE
-
-
-GET_UPDATES_RESPONSE_SCHEMA = marshmallow_dataclass.class_schema(GetUpdatesResponse)()
-SEND_MESSAGE_RESPONSE_SCHEMA = marshmallow_dataclass.class_schema(SendMessageResponse)()
+        unknown = EXCLUDE

@@ -1,208 +1,183 @@
-from typing import Optional, List
+from enum import auto
+from enum import Flag
 
-from django.core.management.base import BaseCommand
-from django.utils.crypto import get_random_string
+from django.conf import settings
+from django.core.management import BaseCommand
 
-from bot.tg.client import TgClient
 from bot.models import TgUser
-from bot.tg.dc import GetUpdatesResponse, Message
-from goals.models import Goal, GoalCategory
-import datetime
+from bot.tg.client import TgClient
+from bot.tg.dc import Message
+from goals.models import Goal
+from goals.models import GoalCategory
 
-from todolist.settings import BOT_TOKEN
+
+class States(Flag):
+    start = auto()
+    verification = auto()
+    idle = auto()
+    input_cat_for_create_goal = auto()
+    input_title_for_create_goal = auto()
 
 
 class Command(BaseCommand):
-    help: str = 'Command to start TodolistBot'
+    help = "start bot"
 
     def __init__(self, *args, **kwargs):
-        self.offset: int = 0
-        self.tg_client = TgClient(token=BOT_TOKEN)
         super().__init__(*args, **kwargs)
+        self.tg_client = TgClient(settings.BOT_TOKEN)
+        self.states_storage = {}
+        self.goals_for_create = {}
 
     def handle(self, *args, **options):
+        """Enter when command Start"""
+        offset = 0
+
         while True:
-            response: GetUpdatesResponse = self.tg_client.get_updates(offset=self.offset)
-            for item in response.result:
-                self.offset = item.update_id + 1
-                if not item.message:
-                    continue
-                # state A пользователя нет в базе данных
-                tg_user: TgUser = self.get_tg_user(item.message)
-                if not tg_user:
-                    verification_code: str = self.generate_verification_code()
-                    self.create_tg_user(item.message, verification_code)
-                    continue
+            res = self.tg_client.get_updates(offset=offset)
+            for item in res.result:
+                offset = item.update_id + 1
+                self.handle_message(item.message)
 
-                # state B пользователь есть в базе, но не подтвержден
-                if tg_user.user_id is None:
-                    verification_code: str = self.generate_verification_code()
-                    self.update_tg_user_verification_code(item.message, verification_code)
-                    continue
-
-                # state C пользователь есть в базе и подтвержден
-                if item.message.text == '/goals':
-                    self.get_goals(item.message, tg_user)
-                elif item.message.text == '/create':  # state Create 1
-                    goal_categories: list = self.get_goal_categories(item.message, tg_user)
-                    goal_category = self.choose_goal_category(goal_categories)
-                    if goal_category:
-                        self.tg_client.send_message(
-                            chat_id=item.message.chat.id,
-                            text=f'Вы выбрали категорию:  {goal_category.title}\n Введите название цели\n'
-                                 f'(Чтобы прервать операцию, введите команду /cancel)')
-                        self.create_goal(tg_user, goal_category)
-                else:
-                    self.tg_client.send_message(
-                        chat_id=item.message.chat.id,
-                        text='Неизвестная команда\n\nДоступны команды:\n'
-                             ' /goals - просмотреть цели\n/create - создать цель')
-
-    def get_tg_user(self, message: Message):
-        """
-        Получить пользователя Telegram
-        :param message: сообщение, полученное от Telegram бота (метод getUpdates)
-        :return: если есть - соответствующий текущему пользователю экземпляр класса TgUser, если нет - None
-        """
-        try:
-            tg_user: Optional[TgUser] = TgUser.objects.get(tg_user_id=message.msg_from.id)
-        except:
-            return None
-
-        return tg_user
-
-    def generate_verification_code(self) -> str:
-        """
-        Сгенерировать код верификации пользователя Telegram
-        :return: код верификации пользователя Telegram
-        """
-        return get_random_string(length=32)
-
-    def create_tg_user(self, message: Message, verification_code: str) -> None:
-        """
-        Создать пользователя Telegram в приложении
-        :param message:  сообщение, полученное от Telegram бота (метод getUpdates)
-        :param verification_code: код верификации пользователя Telegram
-        :return: None
-        """
-        TgUser.objects.create(
-            tg_chat_id=message.chat.id,
-            tg_user_id=message.msg_from.id,
-            tg_username=message.msg_from.username,
-            verification_code=verification_code
+    def handle_message(self, message: Message):
+        """Handle all messages"""
+        tg_user, created = TgUser.objects.get_or_create(
+            tg_id=message.from_.id,
+            defaults={
+                "tg_chat_id": message.chat.id,
+                "username": message.from_.username,
+            },
         )
-        self.tg_client.send_message(chat_id=message.chat.id,
-                               text=f'Привет, {message.msg_from.first_name}!\n'
-                                    f'[verification_code]: {verification_code}')
+        tg_user_id = message.from_.id
 
-    def update_tg_user_verification_code(self, message, verification_code) -> None:
-        """
-        Сохраняем код верификации верификации пользователя Telegram в соответствующем экземпляре модели TgUser,
-        тем самым связывая пользователя приложения с пользователем Telegram
-        :param message: сообщение, полученное от Telegram бота (метод getUpdates)
-        :param verification_code: код верификации пользователя Telegram
-        :return: None
-        """
-        tg_user: Optional[TgUser] = TgUser.objects.filter(tg_user_id=message.msg_from.id)
-        if tg_user:
-            tg_user.objects.update(
-                verification_code=verification_code
+        # States
+        if created:
+            self.states_storage[tg_user_id] = States.start
+        elif not tg_user.user:
+            self.states_storage[tg_user_id] = States.verification
+        elif (
+            self.states_storage.get(tg_user_id, States.verification)
+            == States.verification
+        ):
+            self.states_storage[tg_user_id] = States.idle
+
+        match self.states_storage.get(tg_user_id, States.idle):
+            case States.start:
+                self.tg_client.send_message(message.chat.id, "Привет!")
+            case States.verification:
+                self.verification_state(message, tg_user)
+            case States.idle:
+                self.idle_state(message, tg_user)
+            case States.input_cat_for_create_goal:
+                self.input_cat_for_create_goal_state(message, tg_user)
+            case States.input_title_for_create_goal:
+                self.input_title_for_create_goal_state(message, tg_user)
+
+    def verification_state(self, message: Message, tg_user: TgUser):
+        """Send verification code"""
+        tg_user.set_verification_code()
+        tg_user.save(update_fields=["verification_code"])
+        self.tg_client.send_message(
+            message.chat.id,
+            f"Код подтверждения -> {tg_user.verification_code}",
+        )
+
+    def idle_state(self, message: Message, tg_user: TgUser):
+        """Handle commands for verification user"""
+        if message.text == "/goals":
+            self.send_tasks(message, tg_user)
+        elif message.text == "/create":
+            self.states_storage[
+                tg_user.tg_id
+            ] = States.input_cat_for_create_goal
+            self.send_all_categories(message, tg_user)
+        else:
+            self.tg_client.send_message(
+                message.chat.id, "Неизвестная команда :V"
             )
-            self.tg_client.send_message(chat_id=message.chat.id,
-                                   text=f'Привет, {message.msg_from.first_name}!\n'
-                                        f'[Verification_code]: {verification_code}')
 
-    def get_goals(self, message: Message, tg_user: TgUser) -> None:
-        """
-        Получить все цели текущего пользователя
-        :param message: сообщение, полученное от Telegram бота (метод getUpdates)
-        :param tg_user: экземпляр класса TgUser, соответсвующий текущему пользователю
-        :return: None
-        """
-        goals: Optional[List[Goal]] = Goal.objects.filter(
-            category__board__participants__user__id=tg_user.user_id).exclude(status=Goal.Status.archived)
-        if goals:
-            goals_str: str = 'Ваши цели:'
-            for goal in goals:
-                goals_str += f'\n\n{goal.title}\nприоритет: ' \
-                             f'{goal.Priority.choices[goal.priority-1][1]}\nсрок: {goal.due_date}'
+    def send_tasks(self, message: Message, tg_user: TgUser):
+        """Send all user's task"""
+        goals = Goal.objects.filter(
+            user=tg_user.user, category__is_deleted=False
+        ).exclude(status=Goal.Status.archived)
+        if goals.count() > 0:
+            msg = "\n".join(f"#{goal.id} {goal.title}" for goal in goals)
+            self.tg_client.send_message(message.chat.id, msg)
         else:
-            goals_str: str = 'У Вас нет целей'
+            self.tg_client.send_message(
+                message.chat.id, "У вас нет целей ( ・ˍ・)"
+            )
 
-        self.tg_client.send_message(chat_id=message.chat.id, text=goals_str)
-
-    def get_goal_categories(self, message: Message, tg_user: TgUser) -> Optional[List[GoalCategory]]:
-        """
-        Получить список категорий целей текущего пользователя
-        :param message: сообщение, полученное от Telegram бота (метод getUpdates)
-        :param tg_user: экземпляр класса TgUser, соответсвующий текущему пользователю
-        :return: если есть - список категорий (класс GoalCategory),  если нет - пустой список
-        """
-        goal_categories: Optional[List[GoalCategory]] = GoalCategory.objects.filter(
-            board__participants__user__id=tg_user.user_id, is_deleted=False)
-        if goal_categories:
-            list_goal_categories: list = [goal_category.title for goal_category in goal_categories]
-            goal_categories_str: str = f'Введите одну из категорий:\n' \
-                                       f'(Чтобы прервать операцию, введите команду /cancel) \n\n' \
-                                       f'' + '\n'.join(list_goal_categories)
+    def send_all_categories(self, message: Message, tg_user: TgUser):
+        """Send all user's categories"""
+        categories = GoalCategory.objects.filter(
+            board__participants__user=tg_user.user, is_deleted=False
+        )
+        if categories.count() > 0:
+            msg = (
+                "Выберите категорию (введите название категории)\n"
+                + "\n".join(f"#{cat.id} `{cat.title}`" for cat in categories)
+            )
+            self.tg_client.send_message(
+                message.chat.id, msg, parse_mode="Markdown"
+            )
         else:
-            goal_categories_str: str = f'У Вас нет ни одной категории'
-        self.tg_client.send_message(chat_id=message.chat.id, text=goal_categories_str)
+            self.tg_client.send_message(
+                message.chat.id, "У вас нет категорий ( ・ˍ・)"
+            )
+            self.states_storage[tg_user.tg_id] = States.idle
 
-        return goal_categories
+    def input_cat_for_create_goal_state(
+        self, message: Message, tg_user: TgUser
+    ):
+        """Wait while user input category name for create goal (1 step)"""
+        if message.text == "/cancel":
+            self.goals_for_create.pop(tg_user.tg_id, None)
+            self.cancel(message, tg_user)
+            return
 
-    def choose_goal_category(self, goal_categories: List[GoalCategory]) -> Optional[GoalCategory]:
-        """
-        Выбрать категорию для создания цели
-        :param goal_categories: список категорий текущего пользователя
-        :return: если введена корректная категория - категория, если введена команда /cancel - None
-        """
-        while True:
-            response: GetUpdatesResponse = self.tg_client.get_updates(offset=self.offset)
-            for item in response.result:
-                self.offset = item.update_id + 1
-                if not item.message:
-                    continue
+        category = GoalCategory.objects.filter(
+            title=message.text,
+            board__participants__user=tg_user.user,
+            is_deleted=False,
+        ).first()
+        self.goals_for_create[tg_user.tg_id] = {"cat": None}
+        if category:
+            self.goals_for_create[tg_user.tg_id]["cat"] = category
+            self.tg_client.send_message(
+                message.chat.id, "Отлично!\nТеперь придумайте название цели"
+            )
+            self.states_storage[
+                tg_user.tg_id
+            ] = States.input_title_for_create_goal
+            return
+        else:
+            self.tg_client.send_message(
+                message.chat.id,
+                "У вас нет такой категории :V\nПопробуйте еще раз :D",
+            )
 
-                if item.message.text == '/cancel':
-                    self.tg_client.send_message(chat_id=item.message.chat.id, text='Cоздание цели прервано')
-                    return None
+    def input_title_for_create_goal_state(
+        self, message: Message, tg_user: TgUser
+    ):
+        """Wait while user input title for create goal (2 step)"""
+        if message.text == "/cancel":
+            self.goals_for_create.pop(tg_user.tg_id, None)
+            self.cancel(message, tg_user)
+            return
 
-                elif item.message.text in [goal_category.title for goal_category in goal_categories]:
-                    for goal_category in goal_categories:
-                        if item.message.text == goal_category.title:
-                            return goal_category
-                else:
-                    self.tg_client.send_message(
-                        chat_id=item.message.chat.id,
-                        text='Такой категории нет, повторите ввод\n (Чтобы прервать операцию, введите команду /cancel)')
+        category: GoalCategory = self.goals_for_create[tg_user.tg_id]["cat"]
+        goal = Goal.objects.create(
+            user=category.user, title=message.text, category=category
+        )
+        self.tg_client.send_message(
+            message.chat.id,
+            "Ура! Ваша цель создана:\n"
+            + f"http://gefogen.ga/boards/{category.board.id}/goals?goal={goal.id}",
+        )
+        self.states_storage[tg_user.tg_id] = States.idle
 
-    def create_goal(self, tg_user: TgUser, goal_category: GoalCategory) -> None:
-        """
-        Создать цель
-        :param tg_user: экземпляр класса TgUser, соответсвующий текущему пользователю
-        :param goal_category: список категорий текущего пользователя
-        :return: None
-        """
-        while True:
-            response: GetUpdatesResponse = self.tg_client.get_updates(offset=self.offset)
-            for item in response.result:
-                self.offset = item.update_id + 1
-                if not item.message:
-                    continue
-
-                if item.message.text == '/cancel':
-                    self.tg_client.send_message(chat_id=item.message.chat.id, text='Cоздание цели прервано')
-                    return
-                else:
-                    due_date = datetime.date.today() + datetime.timedelta(days=14)
-                    goal = Goal.objects.create(
-                        category=goal_category,
-                        user=tg_user.user,
-                        title=item.message.text,
-                        description='Цель создана в Telegram',
-                        due_date=due_date.strftime('%Y-%m-%d')
-                    )
-                    self.tg_client.send_message(
-                        chat_id=item.message.chat.id, text=f'Цель [{goal.title}] успешно создана')
-                    return
+    def cancel(self, message: Message, tg_user: TgUser):
+        """Return user to idle state"""
+        self.tg_client.send_message(message.chat.id, "Операция отменена")
+        self.states_storage[tg_user.tg_id] = States.idle
