@@ -5,6 +5,10 @@ from goals.models import GoalCategory, Goal, GoalComment, Board, BoardParticipan
 
 
 class GoalCategoryPermission(IsAuthenticated):
+    """
+    Permission class for Category model,
+    determines if a user has permission to access a category
+    """
     def has_object_permission(self, request, view, obj):
         if not request.user.is_authenticated:
             return False
@@ -17,6 +21,10 @@ class GoalCategoryPermission(IsAuthenticated):
 
 
 class GoalPermission(IsAuthenticated):
+    """
+    Permission class for Goal model,
+    determines if a user has permission to access a goal
+    """
     def has_object_permission(self, request, view, obj):
         if not request.user.is_authenticated:
             return False
@@ -29,6 +37,10 @@ class GoalPermission(IsAuthenticated):
 
 
 class CommentPermission(IsAuthenticated):
+    """
+    Permission class for Comment model,
+    determines if a user has permission to access a comment
+    """
     def has_object_permission(self, request: Request, view: GenericAPIView, obj: GoalComment):
         if request.method in SAFE_METHODS:
             return BoardParticipant.objects.filter(
@@ -45,6 +57,10 @@ class CommentPermission(IsAuthenticated):
 
 
 class BoardPermission(IsAuthenticated):
+    """
+    Permission class for Board model,
+    determines if a user has permission to access a board
+    """
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             return BoardParticipant.objects.filter(

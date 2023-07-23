@@ -1,7 +1,7 @@
+from typing import Tuple
 from django.db import transaction
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.relations import SlugRelatedField
-
 from goals.models import GoalCategory, Goal, GoalComment, Board, BoardParticipant
 from rest_framework.serializers import ModelSerializer, CurrentUserDefault, HiddenField, PrimaryKeyRelatedField,\
     ChoiceField
@@ -10,14 +10,15 @@ from core.models import User
 
 
 class GoalCategoryCreateSerializer(ModelSerializer):
+    """Serializer for creating a new category"""
     user = HiddenField(default=CurrentUserDefault())
 
     class Meta:
         model = GoalCategory
-        read_only_fields = ("id", "created", "updated", "user")
+        read_only_fields: Tuple [str, ...] = ("id", "created", "updated", "user")
         fields = "__all__"
 
-    def validate_board(self, value):
+    def validate_board(self, value: Board) -> Board:
         if value.is_deleted:
             raise ValidationError("Board removed")
         if not BoardParticipant.objects.filter(
@@ -31,24 +32,26 @@ class GoalCategoryCreateSerializer(ModelSerializer):
 
 
 class GoalCategorySerializer(ModelSerializer):
+    """Serializer for retrieving/updating/deleting category"""
     user = ProfileSerializer(read_only=True)
 
     class Meta:
         model = GoalCategory
         fields = "__all__"
-        read_only_fields = ("id", "created", "updated", "user", "board")
+        read_only_fields: Tuple [str, ...] = ("id", "created", "updated", "user", "board")
 
 
 class GoalCreateSerializer(ModelSerializer):
+    """Serializer for creating a new goal"""
     category = PrimaryKeyRelatedField(queryset=GoalCategory.objects.all())
     user = HiddenField(default=CurrentUserDefault())
 
     class Meta:
         model = Goal
         fields = "__all__"
-        read_only_fields = ("id", "created", "updated", "user")
+        read_only_fields: Tuple [str, ...] = ("id", "created", "updated", "user")
 
-    def validate_category(self, value):
+    def validate_category(self, value: GoalCategory) -> GoalCategory:
         if value.is_deleted:
             raise ValidationError('Category not found')
 
@@ -63,15 +66,16 @@ class GoalCreateSerializer(ModelSerializer):
 
 
 class GoalSerializer(ModelSerializer):
+    """Serializer for retrieving/updating/deleting goal"""
     category = PrimaryKeyRelatedField(queryset=GoalCategory.objects.filter(is_deleted=False))
     user = ProfileSerializer(read_only=True)
 
     class Meta:
         model = Goal
         fields = "__all__"
-        read_only_fields = ("id", "created", "updated", "user")
+        read_only_fields: Tuple [str, ...] = ("id", "created", "updated", "user")
 
-    def validate_category(self, value):
+    def validate_category(self, value: GoalCategory) -> GoalCategory:
         if value.is_deleted:
             raise ValidationError('Category not found')
         if self.context['request'].user.id != value.user_id:
@@ -80,6 +84,7 @@ class GoalSerializer(ModelSerializer):
 
 
 class GoalCommentCreateSerializer(ModelSerializer):
+    """Serializer for creating a new comment"""
     user = HiddenField(default=CurrentUserDefault())
 
     def validate_goal(self, value: Goal) -> Goal:
@@ -91,29 +96,31 @@ class GoalCommentCreateSerializer(ModelSerializer):
 
     class Meta:
         model = GoalComment
-        read_only_fields = ('id', 'user', 'created', 'updated')
+        read_only_fields: Tuple [str, ...] = ('id', 'user', 'created', 'updated')
         fields = '__all__'
 
 
 class GoalCommentSerializer(ModelSerializer):
+    """Serializer for retrieving/updating/deleting comment"""
     user = ProfileSerializer(read_only=True)
     goal = PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = GoalComment
-        read_only_fields = ('id', 'goal', 'user', 'created', 'updated')
+        read_only_fields: Tuple [str, ...] = ('id', 'goal', 'user', 'created', 'updated')
         fields = '__all__'
 
 
 class BoardCreateSerializer(ModelSerializer):
+    """Serializer for creating a new board"""
     user = HiddenField(default=CurrentUserDefault())
 
     class Meta:
         model = Board
-        read_only_fields = ("id", "created", "updated")
+        read_only_fields: Tuple [str, ...] = ("id", "created", "updated")
         fields = "__all__"
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict) -> Board:
         user = validated_data.pop("user")
         board = Board.objects.create(**validated_data)
         BoardParticipant.objects.create(
@@ -123,6 +130,7 @@ class BoardCreateSerializer(ModelSerializer):
 
 
 class BoardParticipantSerializer(ModelSerializer):
+    """Serializer for participants"""
     role = ChoiceField(
         required=True, choices=BoardParticipant.Role.choices[1:]
     )
@@ -133,19 +141,20 @@ class BoardParticipantSerializer(ModelSerializer):
     class Meta:
         model = BoardParticipant
         fields = "__all__"
-        read_only_fields = ("id", "created", "updated", "board")
+        read_only_fields: Tuple [str, ...] = ("id", "created", "updated", "board")
 
 
 class BoardSerializer(ModelSerializer):
+    """Serializer for retrieving/updating/deleting board"""
     participants = BoardParticipantSerializer(many=True)
     user = HiddenField(default=CurrentUserDefault())
 
     class Meta:
         model = Board
         fields = "__all__"
-        read_only_fields = ("id", "created", "updated")
+        read_only_fields: Tuple [str, ...] = ("id", "created", "updated")
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Board, validated_data: dict) -> Board:
         owner = validated_data.pop("user")
         new_participants = validated_data.pop("participants")
         new_by_id = {part["user"].id: part for part in new_participants}
@@ -177,6 +186,7 @@ class BoardSerializer(ModelSerializer):
 
 
 class BoardListSerializer(ModelSerializer):
+    """Serializer for a list of boards"""
     class Meta:
         model = Board
         fields = "__all__"

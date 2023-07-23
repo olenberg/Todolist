@@ -1,6 +1,6 @@
+from typing import Tuple
 from core.models import User
 from django.db import models
-# from django.utils import timezone
 
 
 class BaseModel(models.Model):
@@ -8,23 +8,13 @@ class BaseModel(models.Model):
     updated = models.DateTimeField(auto_now=True, verbose_name="Дата последнего обновления")
 
     class Meta:
-        abstract = True
-
-    # class Meta:
-    #     abstract: bool = True
-    #
-    # def save(self, *args, **kwargs) -> None:
-    #     if not self.pk:
-    #         self.created = timezone.now()
-    #     self.updated = timezone.now()
-    #
-    #     return super().save(*args, **kwargs)
+        abstract: bool = True
 
 
 class Board(BaseModel):
     class Meta:
-        verbose_name = "Доска"
-        verbose_name_plural = "Доски"
+        verbose_name: str = "Доска"
+        verbose_name_plural: str = "Доски"
 
     title = models.CharField(verbose_name="Название", max_length=255)
     is_deleted = models.BooleanField(verbose_name="Удалена", default=False)
@@ -32,9 +22,9 @@ class Board(BaseModel):
 
 class BoardParticipant(BaseModel):
     class Meta:
-        unique_together = ("board", "user")
-        verbose_name = "Участник"
-        verbose_name_plural = "Участники"
+        unique_together: Tuple[str, ...] = ("board", "user")
+        verbose_name: str = "Участник"
+        verbose_name_plural: str = "Участники"
 
     class Role(models.IntegerChoices):
         owner = 1, "Владелец"
@@ -60,8 +50,8 @@ class BoardParticipant(BaseModel):
 
 class GoalCategory(BaseModel):
     class Meta:
-        verbose_name = "Категория"
-        verbose_name_plural = "Категории"
+        verbose_name: str = "Категория"
+        verbose_name_plural: str = "Категории"
 
     board = models.ForeignKey(
         Board, verbose_name="Доска", on_delete=models.PROTECT, related_name="categories"
@@ -75,8 +65,8 @@ class GoalCategory(BaseModel):
 
 class Goal(BaseModel):
     class Meta:
-        verbose_name = 'Цель'
-        verbose_name_plural = 'Цель'
+        verbose_name: str = 'Цель'
+        verbose_name_plural: str = 'Цель'
 
     class Status(models.IntegerChoices):
         to_do = 1, "К выполнению"
@@ -109,8 +99,8 @@ class Goal(BaseModel):
 
 class GoalComment(BaseModel):
     class Meta:
-        verbose_name = "Комментарий к цели"
-        verbose_name_plural = "Комментарии к целям"
+        verbose_name: str = "Комментарий к цели"
+        verbose_name_plural: str = "Комментарии к целям"
 
     goal = models.ForeignKey(Goal, verbose_name="Цель", on_delete=models.PROTECT)
     user = models.ForeignKey(User, verbose_name="Автор ", on_delete=models.PROTECT)

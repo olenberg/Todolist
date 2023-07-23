@@ -13,7 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 class SignUpView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = SignUpSerializer
-    permission_classes = [AllowAny]
+    permission_classes: list = [AllowAny]
 
 
 class LoginView(GenericAPIView):
@@ -30,7 +30,7 @@ class LoginView(GenericAPIView):
 class ProfileView(RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes: list = [IsAuthenticated]
 
     def get_object(self) -> Response:
         return self.request.user
@@ -47,5 +47,5 @@ class PasswordUpdateView(UpdateAPIView):
     serializer_class = PasswordUpdateSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_object(self):
+    def get_object(self) -> Response:
         return self.request.user

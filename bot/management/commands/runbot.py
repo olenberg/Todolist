@@ -27,6 +27,7 @@ class Command(BaseCommand):
         self.goals_for_create = {}
 
     def handle(self, *args, **options):
+        """Enter when command Start"""
         offset = 0
 
         while True:
@@ -36,6 +37,7 @@ class Command(BaseCommand):
                 self.handle_message(item.message)
 
     def handle_message(self, message: Message):
+        """Handle all messages"""
         tg_user, created = TgUser.objects.get_or_create(
             tg_id=message.from_.id,
             defaults={
@@ -69,6 +71,7 @@ class Command(BaseCommand):
                 self.input_title_for_create_goal_state(message, tg_user)
 
     def verification_state(self, message: Message, tg_user: TgUser):
+        """Send verification code"""
         tg_user.set_verification_code()
         tg_user.save(update_fields=["verification_code"])
         self.tg_client.send_message(
@@ -77,6 +80,7 @@ class Command(BaseCommand):
         )
 
     def idle_state(self, message: Message, tg_user: TgUser):
+        """Handle commands for verification user"""
         if message.text == "/goals":
             self.send_tasks(message, tg_user)
         elif message.text == "/create":
@@ -103,6 +107,7 @@ class Command(BaseCommand):
             )
 
     def send_all_categories(self, message: Message, tg_user: TgUser):
+        """Send all user's categories"""
         categories = GoalCategory.objects.filter(
             board__participants__user=tg_user.user, is_deleted=False
         )
@@ -120,9 +125,8 @@ class Command(BaseCommand):
             )
             self.states_storage[tg_user.tg_id] = States.idle
 
-    def input_cat_for_create_goal_state(
-        self, message: Message, tg_user: TgUser
-    ):
+    def input_cat_for_create_goal_state(self, message: Message, tg_user: TgUser):
+        """Wait while user input category name for create goal (1 step)"""
         if message.text == "/cancel":
             self.goals_for_create.pop(tg_user.tg_id, None)
             self.cancel(message, tg_user)
@@ -149,9 +153,8 @@ class Command(BaseCommand):
                 "У вас нет такой категории :V\nПопробуйте еще раз",
             )
 
-    def input_title_for_create_goal_state(
-        self, message: Message, tg_user: TgUser
-    ):
+    def input_title_for_create_goal_state(self, message: Message, tg_user: TgUser):
+        """Wait while user input title for create goal (2 step)"""
         if message.text == "/cancel":
             self.goals_for_create.pop(tg_user.tg_id, None)
             self.cancel(message, tg_user)
@@ -169,5 +172,6 @@ class Command(BaseCommand):
         self.states_storage[tg_user.tg_id] = States.idle
 
     def cancel(self, message: Message, tg_user: TgUser):
+        """Return user to idle state"""
         self.tg_client.send_message(message.chat.id, "Операция отменена")
         self.states_storage[tg_user.tg_id] = States.idle

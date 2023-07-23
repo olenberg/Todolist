@@ -13,8 +13,8 @@ class TgUser(models.Model):
     verification_code = models.CharField(max_length=12, verbose_name="Код подтверждения")
 
     class Meta:
-        verbose_name = "Telegram пользователь"
-        verbose_name_plural = "Telegram пользователи"
+        verbose_name: str = "Telegram пользователь"
+        verbose_name_plural: str = "Telegram пользователи"
 
     def set_verification_code(self):
         self.verification_code = "".join(random.choice(string.ascii_letters + string.digits) for _ in range(12))
